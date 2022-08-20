@@ -1,28 +1,10 @@
-pub trait Draw {
-    fn draw(&self);
-}
-struct Screen {
-    pub components: Vec<Box<dyn Draw>>,
-}
+fn main() {
+    let mut v = vec![1, 2, 3, 4, 5, 6];
 
-impl Screen {
-    pub fn run(&self) {
-        for component in self.components.iter() {
-            component.draw();
-        }
-    }
-}
+    let r = &mut v[..];
 
-pub struct Button {
-    pub width: u32,
-    pub height: u32,
-    pub label: String,
-}
+    let (a, b) = r.split_at_mut(3);
 
-impl Draw for Button {
-    fn draw(&self) {
-        todo!()
-    }
+    assert_eq!(a, &mut [1, 2, 3]);
+    assert_eq!(b, &mut [4, 5, 6]);
 }
-
-fn main() {}
