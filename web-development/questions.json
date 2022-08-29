@@ -1,0 +1,18 @@
+{
+  "1": {
+    "id": "1",
+    "title": "How?",
+    "content": "Please help!",
+    "tags": [
+      "general"
+    ]
+  },
+  "2": {
+    "id": "2",
+    "title": "Second quesiton",
+    "content": "Why am i not playing games",
+    "tags": [
+      "gaming"
+    ]
+  }
+}
