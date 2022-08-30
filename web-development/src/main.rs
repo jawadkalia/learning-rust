@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fmt::format, sync::Arc};
 use warp::{
     filters::{body::BodyDeserializeError, cors::CorsForbidden},
     http::Method,
@@ -89,7 +89,7 @@ async fn return_error(r: Rejection) -> Result<impl Reply, Rejection> {
     } else if let Some(error) = r.find::<BodyDeserializeError>() {
         Ok(warp::reply::with_status(
             error.to_string(),
-            StatusCode::UNPROCESSABLE_ENTITY,
+            StatusCode::BAD_REQUEST,
         ))
     } else {
         Ok(warp::reply::with_status(
@@ -135,6 +135,70 @@ async fn get_questions(
     }
 }
 
+async fn add_question(
+    store: Store,
+    question: Question,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    store
+        .questions
+        .write()
+        .await
+        .insert(question.id.clone(), question);
+
+    Ok(warp::reply::with_status("Question added", StatusCode::OK))
+}
+
+async fn update_question(
+    store: Store,
+    question: Question,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    match store.questions.write().await.get_mut(&question.id.clone()) {
+        Some(q) => {
+            let updated_id = q.id.0.clone();
+            *q = question;
+            Ok(warp::reply::with_status(
+                format!("Question id {} updated", { updated_id }),
+                StatusCode::OK,
+            ))
+        }
+        None => Err(warp::reject::custom(Error::QuestionNotFound)),
+    }
+}
+
+async fn delete_question(id: String, store: Store) -> Result<impl warp::Reply, warp::Rejection> {
+    match store
+        .questions
+        .write()
+        .await
+        .remove(&QuestionId(id.clone()))
+    {
+        Some(_) => Ok(warp::reply::with_status(
+            format!("Question with id {} removed", id),
+            StatusCode::OK,
+        )),
+        None => todo!(),
+    }
+}
+
+async fn add_answer(
+    store: Store,
+    params: HashMap<String, String>,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    let answer = Answer {
+        id: AnswerId("1".to_string()),
+        content: params.get("content").unwrap().to_string(),
+        question_id: QuestionId(params.get("questionId").unwrap().to_string()),
+    };
+
+    store
+        .answers
+        .write()
+        .await
+        .insert(answer.id.clone(), answer);
+
+    Ok(warp::reply::with_status("Answer added", StatusCode::OK))
+}
+
 #[tokio::main]
 async fn main() {
     let store = Store::new();
@@ -152,7 +216,40 @@ async fn main() {
         .and(store_filter.clone())
         .and_then(get_questions);
 
-    let routes = get_questions.with(cors).recover(return_error);
+    let add_question = warp::post()
+        .and(warp::path("questions"))
+        .and(warp::path::end())
+        .and(store_filter.clone())
+        .and(warp::body::json())
+        .and_then(add_question);
+
+    let update_question = warp::put()
+        .and(warp::path("questions"))
+        .and(warp::path::end())
+        .and(store_filter.clone())
+        .and(warp::body::json())
+        .and_then(update_question);
+
+    let delete_question = warp::delete()
+        .and(warp::path("questions"))
+        .and(warp::path::param::<String>())
+        .and(warp::path::end())
+        .and(store_filter.clone())
+        .and_then(delete_question);
+
+    let add_answer = warp::post()
+        .and(warp::path("answers"))
+        .and(warp::path::end())
+        .and(store_filter.clone())
+        .and(warp::body::form())
+        .and_then(add_answer);
+
+    let routes = get_questions
+        .or(add_question)
+        .or(update_question)
+        .or(delete_question)
+        .with(cors)
+        .recover(return_error);
 
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }
