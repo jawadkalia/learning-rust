@@ -11,6 +11,8 @@ use warp::{http::Method, Filter};
 
 #[tokio::main]
 async fn main() {
+    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
+
     let store = store::Store::new();
     let store_filter = warp::any().map(move || store.clone());
 
@@ -54,12 +56,25 @@ async fn main() {
         .and(warp::body::form())
         .and_then(add_answer);
 
+    let log = warp::log::custom(|info| {
+        eprintln!(
+            "{} {} {} {:?} from {} with {:?}",
+            info.method(),
+            info.path(),
+            info.status(),
+            info.elapsed(),
+            info.remote_addr().unwrap(),
+            info.request_headers()
+        );
+    });
+
     let routes = get_questions
         .or(add_question)
         .or(update_question)
         .or(delete_question)
         .or(add_answer)
         .with(cors)
+        .with(log)
         .recover(return_error);
 
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
