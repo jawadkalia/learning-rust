@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use warp::hyper::StatusCode;
 
 use crate::store::Store;
-use crate::types::pagination::{self, extract_pagination};
+use crate::types::pagination::extract_pagination;
 use crate::types::question::{Question, QuestionId};
 use handle_errors::Error;
 

@@ -1,7 +1,7 @@
 GET http://localhost:3030/questions
 
 ###
-GET http://localhost:3030/questions?start=0&end=8
+GET http://localhost:3030/questions?start=0&end=2
 
 ###
 OPTIONS http://localhost:3030/questions
