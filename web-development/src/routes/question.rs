@@ -1,73 +1,61 @@
 use std::collections::HashMap;
 
-use warp::hyper::StatusCode;
+use tracing::{event, instrument, Level};
+use warp::http::StatusCode;
 
 use crate::store::Store;
-use crate::types::pagination::extract_pagination;
-use crate::types::question::{Question, QuestionId};
-use handle_errors::Error;
+use crate::types::pagination::{extract_pagination, Pagination};
+use crate::types::question::{NewQuestion, Question};
 
+#[instrument]
 pub async fn get_questions(
     params: HashMap<String, String>,
     store: Store,
 ) -> Result<impl warp::Reply, warp::Rejection> {
+    event!(target: "practical_rust_book", Level::INFO, "querying questions");
+    let mut pagination = Pagination::default();
+
     if !params.is_empty() {
-        let pagination = extract_pagination(params)?;
-        let res: Vec<Question> = store.questions.read().await.values().cloned().collect();
-        match res.get(pagination.start..pagination.end) {
-            Some(value) => Ok(warp::reply::json(&value)),
-            None => Err(warp::reject::custom(Error::QuestionNotFound)),
-        }
-    } else {
-        let res: Vec<Question> = store.questions.read().await.values().cloned().collect();
-        Ok(warp::reply::json(&res))
+        event!(Level::INFO, pagination = true);
+        pagination = extract_pagination(params)?;
+    }
+
+    match store
+        .get_questions(pagination.limit, pagination.offset)
+        .await
+    {
+        Ok(res) => Ok(warp::reply::json(&res)),
+        Err(e) => Err(warp::reject::custom(e)),
+    }
+}
+
+pub async fn update_question(
+    id: i32,
+    store: Store,
+    question: Question,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    match store.update_question(question, id).await {
+        Ok(res) => Ok(warp::reply::json(&res)),
+        Err(e) => Err(warp::reject::custom(e)),
+    }
+}
+
+pub async fn delete_question(id: i32, store: Store) -> Result<impl warp::Reply, warp::Rejection> {
+    match store.delete_question(id).await {
+        Ok(_) => Ok(warp::reply::with_status(
+            format!("Question {} deleted", id),
+            StatusCode::OK,
+        )),
+        Err(e) => Err(warp::reject::custom(e)),
     }
 }
 
 pub async fn add_question(
     store: Store,
-    question: Question,
+    new_question: NewQuestion,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-    store
-        .questions
-        .write()
-        .await
-        .insert(question.id.clone(), question);
-
-    Ok(warp::reply::with_status("Question added", StatusCode::OK))
-}
-
-pub async fn update_question(
-    store: Store,
-    question: Question,
-) -> Result<impl warp::Reply, warp::Rejection> {
-    match store.questions.write().await.get_mut(&question.id.clone()) {
-        Some(q) => {
-            let updated_id = q.id.0.clone();
-            *q = question;
-            Ok(warp::reply::with_status(
-                format!("Question id {} updated", { updated_id }),
-                StatusCode::OK,
-            ))
-        }
-        None => Err(warp::reject::custom(Error::QuestionNotFound)),
-    }
-}
-
-pub async fn delete_question(
-    id: String,
-    store: Store,
-) -> Result<impl warp::Reply, warp::Rejection> {
-    match store
-        .questions
-        .write()
-        .await
-        .remove(&QuestionId(id.clone()))
-    {
-        Some(_) => Ok(warp::reply::with_status(
-            format!("Question with id {} removed", id),
-            StatusCode::OK,
-        )),
-        None => todo!(),
+    match store.add_question(new_question).await {
+        Ok(_) => Ok(warp::reply::with_status("Question added", StatusCode::OK)),
+        Err(e) => Err(warp::reject::custom(e)),
     }
 }

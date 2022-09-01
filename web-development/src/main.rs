@@ -12,17 +12,15 @@ use warp::{http::Method, Filter};
 
 #[tokio::main]
 async fn main() {
-    let store = store::Store::new();
-    let store_filter = warp::any().map(move || store.clone());
+    let dbStore = store::Store::new("postgres://localhost:5434/rustwebdev").await;
+    let store_filter = warp::any().map(move || dbStore.clone());
 
-    let log_filter = std::env::var("RUST_LOG")
-        .unwrap_or_else(|_| "practical_rust_book=info,warp=error".to_owned());
+    let log_filter =
+        std::env::var("RUST_LOG").unwrap_or_else(|_| "web_development=info,warp=error".to_owned());
 
     tracing_subscriber::fmt()
-        .json()
         .with_env_filter(log_filter)
         .with_span_events(FmtSpan::CLOSE)
-        .compact()
         .init();
 
     let cors = warp::cors()
@@ -54,17 +52,18 @@ async fn main() {
 
     let update_question = warp::put()
         .and(warp::path("questions"))
+        .and(warp::path::param::<i32>())
         .and(warp::path::end())
         .and(store_filter.clone())
         .and(warp::body::json())
-        .and_then(update_question);
+        .and_then(routes::question::update_question);
 
     let delete_question = warp::delete()
         .and(warp::path("questions"))
-        .and(warp::path::param::<String>())
+        .and(warp::path::param::<i32>())
         .and(warp::path::end())
         .and(store_filter.clone())
-        .and_then(delete_question);
+        .and_then(routes::question::delete_question);
 
     let add_answer = warp::post()
         .and(warp::path("answers"))
