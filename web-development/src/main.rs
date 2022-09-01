@@ -12,8 +12,14 @@ use warp::{http::Method, Filter};
 
 #[tokio::main]
 async fn main() {
-    let dbStore = store::Store::new("postgres://localhost:5434/rustwebdev").await;
-    let store_filter = warp::any().map(move || dbStore.clone());
+    let db_store = store::Store::new("postgres://user:password@localhost:5434/postgres").await;
+
+    sqlx::migrate!()
+        .run(&db_store.clone().connection)
+        .await
+        .expect("Cannot run migration");
+
+    let store_filter = warp::any().map(move || db_store.clone());
 
     let log_filter =
         std::env::var("RUST_LOG").unwrap_or_else(|_| "web_development=info,warp=error".to_owned());
