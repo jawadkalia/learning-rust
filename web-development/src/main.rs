@@ -1,3 +1,4 @@
+mod profanity;
 mod routes;
 mod store;
 mod types;
@@ -62,14 +63,14 @@ async fn main() {
         .and(warp::path::end())
         .and(store_filter.clone())
         .and(warp::body::json())
-        .and_then(routes::question::update_question);
+        .and_then(update_question);
 
     let delete_question = warp::delete()
         .and(warp::path("questions"))
         .and(warp::path::param::<i32>())
         .and(warp::path::end())
         .and(store_filter.clone())
-        .and_then(routes::question::delete_question);
+        .and_then(delete_question);
 
     let add_answer = warp::post()
         .and(warp::path("answers"))

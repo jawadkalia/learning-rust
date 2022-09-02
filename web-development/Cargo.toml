@@ -14,4 +14,5 @@ handle-errors = { path = "handle-errors" }
 tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 uuid = { version = "1", features = ["v4"] }
-sqlx = { version = "0.5", features = [ "runtime-tokio-rustls", "migrate", "postgres" ] }
+sqlx = { version = "0.6.1", features = [ "runtime-tokio-rustls", "migrate", "postgres" ] }
+reqwest = { version = "0.11", features = ["json"] }

@@ -1,9 +1,6 @@
 GET http://localhost:3030/questions
 
 ###
-GET http://localhost:3030/questions?start=0&end=2
-
-###
 OPTIONS http://localhost:3030/questions
 Access-Control-Request-Method: PUT  
 Access-Control-Request-Headers: content-type
@@ -27,4 +24,20 @@ Content-Type: application/json
     "id": "A",
    
     "content": "question 2"
+}
+
+###
+
+POST https://api.apilayer.com/bad_words?censor_character=* 
+
+"shitty-length"
+
+###
+
+POST http://localhost:3030/questions HTTP/1.1
+Content-Type:application/json
+
+{
+    "title" : "New Ass Title",
+    "content": "OLD Content shit"
 }
