@@ -3,7 +3,7 @@ use std::{
     io::{self, stdout},
     sync::mpsc,
     thread,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use crossterm::{
@@ -14,6 +14,7 @@ use crossterm::{
 };
 use invaders::{
     frame::{self, new_frame, Drawabale},
+    invader::{Invader, Invaders},
     player::Player,
     render,
 };
@@ -49,8 +50,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Game Loop
     let mut player = Player::new();
+    let mut instant = Instant::now();
+    let mut invaders = Invaders::new();
     'gameloop: loop {
         //Per-frame init
+        let delta = instant.elapsed();
+        instant = Instant::now();
         let mut curr_frame = new_frame();
 
         // Input
@@ -59,6 +64,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 match key_event.code {
                     KeyCode::Right => player.move_right(),
                     KeyCode::Left => player.move_left(),
+                    KeyCode::Char(' ') | KeyCode::Enter => {
+                        if player.shoot() {
+                            audio.play("pew");
+                        }
+                    }
                     KeyCode::Esc | KeyCode::Char('q') => {
                         audio.play("lose");
                         break 'gameloop;
@@ -68,8 +78,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
+        // Updates
+        player.update(delta);
+        if invaders.update(delta) {
+            audio.play("move");
+        }
+
         // Draw and render
         player.draw(&mut curr_frame);
+        invaders.draw(&mut curr_frame);
         let _ = render_tx.send(curr_frame);
         thread::sleep(Duration::from_millis(1));
     }
