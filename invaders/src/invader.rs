@@ -2,7 +2,10 @@ use std::{cmp::max, time::Duration};
 
 use rusty_time::timer::Timer;
 
-use crate::{frame::Drawabale, NUM_COLS, NUM_ROWS};
+use crate::{
+    frame::{Drawabale, Frame},
+    NUM_COLS, NUM_ROWS,
+};
 
 pub struct Invader {
     pub x: usize,
@@ -71,6 +74,27 @@ impl Invaders {
         }
         false
     }
+
+    pub fn all_killed(&self) -> bool {
+        self.army.is_empty()
+    }
+
+    pub fn reached_bottom(&self) -> bool {
+        self.army.iter().map(|invader| invader.y).max().unwrap_or(0) >= NUM_ROWS - 1
+    }
+
+    pub fn kill_invader_at(&mut self, x: usize, y: usize) -> bool {
+        if let Some(idx) = self
+            .army
+            .iter()
+            .position(|invader| (invader.x == x) && (invader.y == y))
+        {
+            self.army.remove(idx);
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl Default for Invaders {
@@ -80,12 +104,11 @@ impl Default for Invaders {
 }
 
 impl Drawabale for Invaders {
-    fn draw(&self, frame: &mut crate::frame::Frame) {
+    fn draw(&self, frame: &mut Frame) {
         for invader in self.army.iter() {
-            frame[invader.x][invader.y] = if self.move_timer.time_left.as_secs_f32()
-                / self.move_timer.time_left.as_secs_f32()
-                > 0.5
-            {
+            let time_left = self.move_timer.time_left.as_secs_f32();
+            let total_duration = self.move_timer.duration.as_secs_f32();
+            frame[invader.x][invader.y] = if (time_left / total_duration) > 0.5 {
                 "x"
             } else {
                 "+"
