@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use rusty_time::timer::Timer;
 
-use crate::frame::Drawabale;
+use crate::frame::{Drawabale, Frame};
 
 pub struct Shot {
     pub x: usize,
@@ -42,7 +42,7 @@ impl Shot {
 }
 
 impl Drawabale for Shot {
-    fn draw(&self, frame: &mut crate::frame::Frame) {
+    fn draw(&self, frame: &mut Frame) {
         frame[self.x][self.y] = if self.exploding { "*" } else { "|" }
     }
 }

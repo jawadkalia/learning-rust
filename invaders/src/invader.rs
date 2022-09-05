@@ -48,12 +48,12 @@ impl Invaders {
                 if min_x == 0 {
                     self.direction = 1;
                     downwards = true;
-                } else {
-                    let max_x = self.army.iter().map(|invader| invader.x).max().unwrap_or(0);
-                    if max_x == NUM_COLS - 1 {
-                        self.direction = -1;
-                        downwards = true;
-                    }
+                }
+            } else {
+                let max_x = self.army.iter().map(|invader| invader.x).max().unwrap_or(0);
+                if max_x == NUM_COLS - 1 {
+                    self.direction = -1;
+                    downwards = true;
                 }
             }
             if downwards {
@@ -64,12 +64,11 @@ impl Invaders {
                 }
             } else {
                 for invader in self.army.iter_mut() {
-                    invader.x = (invader.x as i32 + self.direction) as usize;
+                    invader.x = ((invader.x as i32) + self.direction) as usize;
                 }
             }
             return true;
         }
-
         false
     }
 }
